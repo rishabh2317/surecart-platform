@@ -2,12 +2,13 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, notFound } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useParams, notFound, usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context'; // This is the CORRECT import
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
 import { ExternalLink, Heart, Share2, Check, MessageCircle, UserPlus } from 'lucide-react';
-// --- API Functions ---
+import { useState, useEffect, useRef } from 'react';
+
+// --- API Functions (Preserved from your working code) ---
 async function getCollectionData(username: string, slug: string) {
     const res = await fetch(`http://localhost:3001/public/collections/${username}/${slug}`);
     if (!res.ok) throw new Error("Collection not found");
@@ -22,7 +23,6 @@ async function likeCollection({ collectionId, userId }: { collectionId: string, 
     return res.json();
 }
 
-
 async function unlikeCollection({ collectionId, userId }: { collectionId: string, userId: string }) {
     const res = await fetch(`http://localhost:3001/collections/${collectionId}/unlike`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }),
@@ -32,6 +32,7 @@ async function unlikeCollection({ collectionId, userId }: { collectionId: string
 }
 
 async function getLikeStatus(collectionId: string, userId: string) {
+    if (!collectionId || !userId) return { isLiked: false };
     const res = await fetch(`http://localhost:3001/users/${userId}/liked-status/${collectionId}`);
     if (!res.ok) return { isLiked: false };
     return res.json();
@@ -42,20 +43,6 @@ async function followCreator({ creatorId, userId }: { creatorId: string, userId:
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }),
     });
     if (!res.ok) throw new Error("Failed to follow");
-    return res.json();
-}
-
-async function postComment({ collectionId, userId, text }: { collectionId: string, userId: string, text: string }) {
-    const res = await fetch(`http://localhost:3001/collections/${collectionId}/comments`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, text }),
-    });
-    if (!res.ok) throw new Error("Failed to post comment");
-    return res.json();
-}
-
-async function getComments(collectionId: string) {
-    const res = await fetch(`http://localhost:3001/collections/${collectionId}/comments`);
-    if (!res.ok) return [];
     return res.json();
 }
 
@@ -76,7 +63,25 @@ const getFollowStatus = async (creatorId: string, userId: string) => {
     if (!res.ok) return { isFollowing: false };
     return res.json();
 };
-// --- SUB-COMPONENTS for a clean structure ---
+
+
+async function postComment({ collectionId, userId, text }: { collectionId: string, userId: string, text: string }) {
+    const res = await fetch(`http://localhost:3001/collections/${collectionId}/comments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, text }),
+    });
+    if (!res.ok) throw new Error("Failed to post comment");
+    return res.json();
+}
+
+async function getComments(collectionId: string) {
+    if (!collectionId) return [];
+    const res = await fetch(`http://localhost:3001/collections/${collectionId}/comments`);
+    if (!res.ok) return [];
+    return res.json();
+}
+
+
+// --- SUB-COMPONENTS (Preserved and redesigned from your working code) ---
 const ProductCard = ({ product }: { product: any }) => (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden group">
         <div className="aspect-square w-full overflow-hidden">
@@ -89,7 +94,7 @@ const ProductCard = ({ product }: { product: any }) => (
         <div className="p-5 flex-grow flex flex-col">
             <p className="text-sm text-slate-500">{product.brand}</p>
             <h3 className="font-bold text-lg text-slate-900 flex-grow">{product.name}</h3>
-            <p className="text-sm text-slate-600 mt-2 italic border-l-2 border-indigo-200 pl-3">
+            <p className="text-sm text-slate-600 mt-2 italic border-l-2 border-teal-200 pl-3">
                 "This is my absolute go-to for daily hydration. A must-have!"
             </p>
             <a 
@@ -105,16 +110,17 @@ const ProductCard = ({ product }: { product: any }) => (
     </div>
 );
 
-// --- MAIN PAGE COMPONENT ---
+// --- MAIN PAGE COMPONENT (Preserved and redesigned from your working code) ---
 export default function PublicCollectionPage() {
     const params = useParams();
+    const pathname = usePathname();
     const { user, openAuthModal } = useAuth();
     const queryClient = useQueryClient();
     const [copied, setCopied] = useState(false);
     const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
-    //const [isFollowing, setIsFollowing] = useState(false);
-    
+    const [isFollowing, setIsFollowing] = useState(false);
+    const commentsSectionRef = useRef<HTMLElement>(null);
 
     const username = params.username as string;
     const collectionSlug = params.collectionSlug as string;
@@ -130,14 +136,16 @@ export default function PublicCollectionPage() {
         queryFn: () => getLikeStatus(collection!.id, user!.id),
         enabled: !!user && !!collection,
     });
+    
     useQuery({
         queryKey: ['followStatus', collection?.authorId, user?.id],
         queryFn: () => getFollowStatus(collection.authorId, user.id),
         enabled: !!user && !!collection,
-        onSuccess: (data) => setIsFollowing(data.isFollowing),
+        onSuccess: (data) => {
+            if (data) setIsFollowing(data.isFollowing);
+        },
     });
-
-    //const unfollowMutation = useMutation({ mutationFn: unfollowCreator, onSuccess: () => setIsFollowing(false) });
+    
 
     const commentsQueryKey = ['comments', collection?.id];
     const { data: comments = [] } = useQuery({
@@ -168,49 +176,45 @@ export default function PublicCollectionPage() {
             queryClient.invalidateQueries({ queryKey: ['likedCollections', user?.id] });
         },
     });
-    const commentsSectionRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        // This will run when the comment section is opened
-        if (showComments && commentsSectionRef.current) {
-            commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, [showComments]); // The dependency array ensures this only runs when showComments changes
-
-    //const followMutation = useMutation({ mutationFn: followCreator, onSuccess: () => alert("Creator followed!") });
-    const [isFollowing, setIsFollowing] = useState(false);
-
-    const { data: followStatus } = useQuery({
-        queryKey: ['followStatus', collection?.authorId, user?.id],
-        queryFn: () => getFollowStatus(collection.authorId, user.id),
-        enabled: !!user && !!collection,
-        onSuccess: (data) => {
-            if (data) setIsFollowing(data.isFollowing);
-        },
-    });
 
     const followMutation = useMutation({
         mutationFn: followCreator,
-        onSuccess: () => setIsFollowing(true),
-        onError: () => alert("You may already be following this creator.")
+        onSuccess: () => {
+            setIsFollowing(true);
+        },
+        onError: (error: any) => {
+            // This is the FIX: We check for the specific error from our server.
+            // If the user is already following, we can silently update the UI to match.
+            if (error.message.includes("Already following")) {
+                setIsFollowing(true);
+            } else {
+                alert("An error occurred. Please try again.");
+            }
+        }
     });
-    
+
     const unfollowMutation = useMutation({
         mutationFn: unfollowCreator,
-        onSuccess: () => setIsFollowing(false),
-        onError: () => alert("Could not unfollow creator.")
+        onSuccess: () => setIsFollowing(false), // Update state on success
     });
+
     const commentMutation = useMutation({
         mutationFn: postComment,
         onSuccess: () => {
             setNewComment("");
             queryClient.invalidateQueries({ queryKey: commentsQueryKey });
         },
-        onError: () => alert("Could not post comment.")
     });
+    
+
+    useEffect(() => {
+        if (showComments && commentsSectionRef.current) {
+            commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [showComments]);
 
     const handleToggleLike = () => {
-        if (!user) openAuthModal();
+        if (!user) openAuthModal(pathname);
         else likeMutation.mutate(likeStatus?.isLiked ?? false);
     };
 
@@ -222,7 +226,7 @@ export default function PublicCollectionPage() {
 
     const handleFollow = () => {
         if (!user) {
-            openAuthModal();
+            openAuthModal(pathname);
         } else if (collection) {
             if (isFollowing) {
                 unfollowMutation.mutate({ creatorId: collection.authorId, userId: user.id });
@@ -234,7 +238,7 @@ export default function PublicCollectionPage() {
 
     const handleCommentClick = () => {
         if (!user && !showComments) {
-            openAuthModal();
+            openAuthModal(pathname);
         } else {
             setShowComments(!showComments);
         }
@@ -258,8 +262,8 @@ export default function PublicCollectionPage() {
         <div className="bg-slate-50">
             <header className="py-12 px-4 text-center bg-white border-b border-slate-200">
                 <div className="flex justify-center items-center mb-4"><img src={collection.authorAvatar} alt={collection.author} className="w-20 h-20 rounded-full shadow-lg" /></div>
-                <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">{collection.name}</h1>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-700">A hand-picked collection by <span className="font-semibold text-indigo-600">{collection.author}</span></p>
+                <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">{collection.name}</h1>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-700">A hand-picked collection by <span className="font-semibold text-teal-600">{collection.author}</span></p>
                 {collection.description && (<p className="mt-4 max-w-2xl mx-auto text-md text-slate-600 italic">"{collection.description}"</p>)}
                 <div className="mt-6 flex flex-wrap justify-center items-center gap-2 sm:gap-4">
                 <button onClick={handleFollow} disabled={followMutation.isPending || unfollowMutation.isPending} className="flex items-center space-x-2 px-4 py-2 bg-white border rounded-full text-slate-700 hover:bg-slate-100">
@@ -275,37 +279,37 @@ export default function PublicCollectionPage() {
                         <span>Comment</span>
                     </button>
                     <button onClick={handleShare} className="flex items-center space-x-2 px-4 py-2 bg-white border rounded-full text-slate-700 hover:bg-slate-100">
-                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5 text-indigo-500" />}
+                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5 text-teal-500" />}
                         <span>{copied ? 'Copied!' : 'Share'}</span>
                     </button>
                 </div>
             </header>
 
-            
-
-            <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+            <main className="container mx-auto p-4 sm:p-6 lg:px-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {collection.products.map((product: any) => (<ProductCard key={product.id} product={product} />))}
                 </div>
             </main>
             {showComments && (
-                <section ref={commentsSectionRef} className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl bg-white rounded-b-lg shadow-inner">
-                    <h3 className="text-xl font-bold text-slate-800 mb-4">Comments ({comments.length})</h3>
-                    <form onSubmit={handlePostComment} className="flex space-x-3 mb-6">
-                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={user ? "Add a comment..." : "Log in to comment"} className="flex-grow p-3 border rounded-lg" disabled={!user} />
-                        <button type="submit" disabled={!user || commentMutation.isPending} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg">Post</button>
-                    </form>
-                    <div className="space-y-4">
-                        {comments.map((comment: any) => (
-                            <div key={comment.id} className="flex items-start space-x-3">
-                                <img src={comment.user.profileImageUrl || `https://placehold.co/100x100/E2E8F0/475569?text=${comment.user.username.charAt(0).toUpperCase()}`} alt={comment.user.username} className="w-10 h-10 rounded-full" />
-                                <div className="bg-slate-100 p-3 rounded-lg flex-1">
-                                    <p className="font-semibold text-sm text-slate-800">{comment.user.username}</p>
-                                    <p className="text-slate-700">{comment.text}</p>
+                <section ref={commentsSectionRef} className="bg-white py-8 sm:py-12">
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+                        <h3 className="text-2xl font-bold text-slate-800 mb-6">Comments ({comments.length})</h3>
+                        <form onSubmit={handlePostComment} className="flex space-x-3 mb-8">
+                            <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={user ? "Add a comment..." : "Log in to comment"} className="flex-grow p-3 border border-slate-300 rounded-lg" disabled={!user} />
+                            <button type="submit" disabled={!user || commentMutation.isPending} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg">Post</button>
+                        </form>
+                        <div className="space-y-6">
+                            {comments.map((comment: any) => (
+                                <div key={comment.id} className="flex items-start space-x-3">
+                                    <img src={comment.user.profileImageUrl || `https://placehold.co/100x100/E2E8F0/475569?text=${comment.user.username.charAt(0).toUpperCase()}`} alt={comment.user.username} className="w-10 h-10 rounded-full" />
+                                    <div className="bg-slate-100 p-3 rounded-lg flex-1">
+                                        <p className="font-semibold text-sm text-slate-800">{comment.user.username}</p>
+                                        <p className="text-slate-700">{comment.text}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                        {comments.length === 0 && <p className="text-slate-500 text-center py-4">Be the first to comment.</p>}
+                            ))}
+                            {comments.length === 0 && <p className="text-slate-500 text-center py-4">Be the first to comment.</p>}
+                        </div>
                     </div>
                 </section>
             )}

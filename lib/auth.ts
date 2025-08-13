@@ -3,6 +3,7 @@
 
 export const saveUserSession = (user: { id: string, email: string, username: string }) => {
     localStorage.setItem('surecart_user', JSON.stringify(user));
+    
 };
 
 export const getUserSession = () => {

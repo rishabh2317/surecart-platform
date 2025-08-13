@@ -9,6 +9,7 @@ export default function Footer() {
         <div className="flex space-x-6">
           <Link href="/about" className="text-slate-600 hover:text-indigo-600">About</Link>
           <Link href="/for-creators" className="text-slate-600 hover:text-indigo-600">For Creators</Link>
+          <Link href="/for-brands" className="text-slate-600 hover:text-teal-600">For Brands</Link>
           <Link href="/terms" className="text-slate-600 hover:text-indigo-600">Terms</Link>
           <Link href="/privacy" className="text-slate-600 hover:text-indigo-600">Privacy</Link>
         </div>

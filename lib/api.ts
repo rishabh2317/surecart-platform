@@ -47,6 +47,13 @@ export const createCollection = (data: {
         body: JSON.stringify(data),
     });
 };
+export const updateCollection = (data: { id: string; name: string; products: any[] }) => {
+    return fetcher(`/collections/${data.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+};
 
 export const deleteCollection = (collectionId: string) => {
     return fetcher(`/collections/${collectionId}`, {

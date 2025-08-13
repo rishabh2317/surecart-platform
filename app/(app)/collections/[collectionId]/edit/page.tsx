@@ -4,16 +4,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCollection, searchProducts } from '@/lib/api'; // We will add updateCollection here
+import { getCollection, searchProducts, updateCollection } from '@/lib/api'; // We will add updateCollection here
 import Link from 'next/link';
 import { ArrowLeft, Save, X, CheckCircle } from 'lucide-react';
 
-// A placeholder for the update API function we'll add to lib/api.ts
-const updateCollection = async (data: { id: string; name: string; products: any[] }) => {
-    // This is a placeholder. In a real app, you'd have a PUT /collections/:id endpoint.
-    console.log("Saving updated collection:", data);
-    return data; 
-};
 
 interface Product { id: string; name: string; brand: string; imageUrl: string; }
 
@@ -49,7 +43,7 @@ export default function EditCollectionPage() {
 
   // 4. Set up the mutation to save changes
   const updateMutation = useMutation({
-    mutationFn: updateCollection,
+    mutationFn: updateCollection, // This now calls the real API function
     onSuccess: () => {
       // Refetch the data for this collection and the dashboard for consistency
       queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });

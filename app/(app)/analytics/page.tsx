@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { ArrowUpRight, MousePointerClick, DollarSign, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
+import CreatorPageHeader from '@/components/creator/CreatorPageHeader';
 
 // --- API Function ---
 const getAnalyticsData = async (userId: string) => {
@@ -58,8 +59,11 @@ if (isLoading || !user) {
 
     return (
         <div className="min-h-screen bg-slate-50">
+            <CreatorPageHeader title="Performance" />
             <main className="container mx-auto p-4 sm:p-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-6">Performance</h1>
+            
+
+
                 
                 {/* Summary Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
