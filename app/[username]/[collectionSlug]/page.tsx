@@ -5,8 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, notFound, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context'; // This is the CORRECT import
 import Link from 'next/link';
-import { ExternalLink, Heart, Share2, Check, MessageCircle, UserPlus } from 'lucide-react';
+import { ExternalLink, Heart, Share2, Check, MessageCircle, Sparkles, UserPlus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import AskAIDrawer from '@/components/shared/AskAIDrawer';
 
 // --- API Functions (Preserved from your working code) ---
 async function getCollectionData(username: string, slug: string) {
@@ -82,33 +83,53 @@ async function getComments(collectionId: string) {
 
 
 // --- SUB-COMPONENTS (Preserved and redesigned from your working code) ---
-const ProductCard = ({ product }: { product: any }) => (
-    <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden group">
-        <div className="aspect-square w-full overflow-hidden">
-            <img 
-                src={product.imageUrl} 
-                alt={product.name} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+// --- SUB-COMPONENTS for a clean structure ---
+const ProductCard = ({ product }: { product: any }) => {
+    const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
+
+    return (
+        <>
+            <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden group">
+                <div className="aspect-square w-full overflow-hidden">
+                    <img 
+                        src={product.imageUrl} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                </div>
+                <div className="p-5 flex-grow flex flex-col">
+                    <p className="text-sm text-slate-500">{product.brand}</p>
+                    <h3 className="font-bold text-lg text-slate-900 flex-grow mt-1">{product.name}</h3>
+                    
+                    <button 
+                        onClick={() => setIsAiDrawerOpen(true)}
+                        className="w-full text-sm font-semibold text-teal-600 hover:text-teal-700 mt-4 flex items-center justify-center space-x-2 py-2 bg-teal-50 rounded-lg hover:bg-teal-100"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        <span>AI Review Summary</span>
+                    </button>
+                    
+                    <a 
+                        href={product.buyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full mt-2 flex items-center justify-center px-4 py-3 font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900"
+                    >
+                        Shop Now
+                        <ExternalLink className="w-4 h-4 ml-2" />
+                    </a>
+                </div>
+            </div>
+
+            {/* The modal is now correctly placed within the fragment */}
+            <AskAIDrawer
+                productName={product.name}
+                isOpen={isAiDrawerOpen}
+                onClose={() => setIsAiDrawerOpen(false)}
             />
-        </div>
-        <div className="p-5 flex-grow flex flex-col">
-            <p className="text-sm text-slate-500">{product.brand}</p>
-            <h3 className="font-bold text-lg text-slate-900 flex-grow">{product.name}</h3>
-            <p className="text-sm text-slate-600 mt-2 italic border-l-2 border-teal-200 pl-3">
-                "This is my absolute go-to for daily hydration. A must-have!"
-            </p>
-            <a 
-                href={product.buyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full mt-4 flex items-center justify-center px-4 py-3 font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900"
-            >
-                Shop Now
-                <ExternalLink className="w-4 h-4 ml-2" />
-            </a>
-        </div>
-    </div>
-);
+        </>
+    );
+};
 
 // --- MAIN PAGE COMPONENT (Preserved and redesigned from your working code) ---
 export default function PublicCollectionPage() {
@@ -129,6 +150,19 @@ export default function PublicCollectionPage() {
         queryKey: ['publicCollection', username, collectionSlug],
         queryFn: () => getCollectionData(username, collectionSlug),
     });
+
+    // --- ADD THIS NEW useEffect HOOK ---
+    useEffect(() => {
+        // This ensures we only log a view once the collection data has successfully loaded
+        if (collection && collection.id) {
+            fetch(`http://localhost:3001/public/collections/${collection.id}/view`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // If a user is logged in, we can associate the view with them
+                body: JSON.stringify({ userId: user?.id || null }),
+            });
+        }
+    }, [collection, user]); // This hook runs whenever the collection data or user state changes
 
     const likeStatusQueryKey = ['likeStatus', collection?.id, user?.id];
     const { data: likeStatus } = useQuery({

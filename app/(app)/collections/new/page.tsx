@@ -166,9 +166,9 @@ export default function NewCollectionPage() {
         </button>
     }
 />
-      <div className="flex-grow flex-1 flex flex-col md:flex-row overflow-hidden">
+<div className="flex-grow flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* --- LEFT COLUMN: COLLECTION DETAILS (Redesigned) --- */}
-        <main className="w-full md:w-1/2 p-6 overflow-y-auto">
+        <main className="w-full md:w-1/2 p-6 md:overflow-y-auto">
           <div className="max-w-xl mx-auto">
             
             <div className="space-y-6">
@@ -195,8 +195,8 @@ export default function NewCollectionPage() {
         </main>
 
         {/* --- RIGHT COLUMN: PRODUCT SELECTION (Redesigned) --- */}
-        <aside className="w-full md:w-1/2 bg-white border-l overflow-y-auto p-4">
-          <div className="sticky top-0 bg-white pt-2 pb-4 z-10">
+        <aside className="w-full md:w-1/2 bg-white border-r border-slate-200 p-4 md:overflow-y-auto">
+        <div className="md:sticky top-0 bg-white pt-2 pb-4 z-10">
             <h3 className="font-bold mb-4 text-slate-800">Add Products ({selectedProducts.length})</h3>
             <div className="relative mb-4">
                 <input type="search" placeholder="Search products..." className="w-full pl-10 pr-4 py-2 border rounded-lg" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />

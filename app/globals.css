@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* This is a world-class CSS rule for better placeholder visibility */
+::placeholder {
+  color: #475569; /* This is the hex code for slate-600 from our design system */
+  opacity: 0.5; /* Firefox needs this */
+}
+input,
+textarea {
+  color: #1e293b; /* This is the hex code for slate-800 from our design system */
+}

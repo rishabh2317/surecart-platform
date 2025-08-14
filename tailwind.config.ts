@@ -12,6 +12,7 @@ const config: Config = {
         // This makes 'Inter' the default font
         sans: ['Inter', 'sans-serif'],
       },
+    
       colors: {
         // This adds our new Teal primary color
         teal: {
@@ -36,8 +37,19 @@ const config: Config = {
         'xl': '12px',
         '2xl': '16px',
       },
+      typography: ({ theme }: { theme: any }) => ({
+        slate: {
+          css: {
+            '--tw-prose-body': theme('colors.slate[800]'),
+            '--tw-prose-headings': theme('colors.slate[900]'),
+            '--tw-prose-links': theme('colors.teal[600]'),
+          },
+        },
+      }),
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography')
+  ],
 }
 export default config
