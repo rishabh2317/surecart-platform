@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { ExternalLink, Heart, Share2, Check, MessageCircle, Sparkles, UserPlus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import AskAIDrawer from '@/components/shared/AskAIDrawer';
+import ShareModal from '@/components/shared/ShareModal';
 
 // --- API Functions (Preserved from your working code) ---
 async function getCollectionData(username: string, slug: string) {
@@ -142,14 +143,21 @@ export default function PublicCollectionPage() {
     const [newComment, setNewComment] = useState("");
     const [isFollowing, setIsFollowing] = useState(false);
     const commentsSectionRef = useRef<HTMLElement>(null);
-
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [pageUrl, setPageUrl] = useState('');
     const username = params.username as string;
     const collectionSlug = params.collectionSlug as string;
-
+    
     const { data: collection, isLoading, isError } = useQuery({
         queryKey: ['publicCollection', username, collectionSlug],
         queryFn: () => getCollectionData(username, collectionSlug),
     });
+
+    useEffect(() => {
+        // Set the page URL on the client-side
+        setPageUrl(window.location.href);
+    }, []);
+  
 
     // --- ADD THIS NEW useEffect HOOK ---
     useEffect(() => {
@@ -252,10 +260,9 @@ export default function PublicCollectionPage() {
         else likeMutation.mutate(likeStatus?.isLiked ?? false);
     };
 
+    // The handleShare function is now simpler
     const handleShare = () => {
-        navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setShowShareModal(true);
     };
 
     const handleFollow = () => {
@@ -293,6 +300,7 @@ export default function PublicCollectionPage() {
     const isLiked = likeStatus?.isLiked ?? false;
 
     return (
+        <>
         <div className="bg-slate-50">
             <header className="py-12 px-4 text-center bg-white border-b border-slate-200">
                 <div className="flex justify-center items-center mb-4"><img src={collection.authorAvatar} alt={collection.author} className="w-20 h-20 rounded-full shadow-lg" /></div>
@@ -313,9 +321,9 @@ export default function PublicCollectionPage() {
                         <span>Comment</span>
                     </button>
                     <button onClick={handleShare} className="flex items-center space-x-2 px-4 py-2 bg-white border rounded-full text-slate-700 hover:bg-slate-100">
-                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5 text-teal-500" />}
-                        <span>{copied ? 'Copied!' : 'Share'}</span>
-                    </button>
+                            <Share2 className="w-5 h-5 text-teal-500" />
+                            <span>Share</span>
+                        </button>
                 </div>
             </header>
 
@@ -348,5 +356,11 @@ export default function PublicCollectionPage() {
                 </section>
             )}
         </div>
+        <ShareModal 
+                url={pageUrl}
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+            />
+        </>
     );
 }
